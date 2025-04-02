@@ -1,6 +1,9 @@
 use anyhow::Context as _;
 use poise::{
-  serenity_prelude::{ClientBuilder, CreateEmbed, Error, GatewayIntents, GuildId},
+  serenity_prelude::{
+    ChannelType, ClientBuilder, CreateEmbed, CreateThread, Error, GatewayIntents, GuildId,
+    Mentionable,
+  },
   CreateReply, Framework, FrameworkOptions,
 };
 use rand::Rng;
@@ -46,6 +49,41 @@ async fn roll(
   Ok(())
 }
 
+#[poise::command(slash_command, prefix_command)]
+async fn thread(
+  ctx: Context<'_>,
+  #[description = "Thread name"] name: String,
+  #[description = "Private thread"] private: Option<bool>,
+) -> Result<(), Error> {
+  let channel = ctx
+    .channel_id()
+    .create_thread(
+      &ctx.http(),
+      CreateThread::new(name).kind(if private.unwrap_or(false) {
+        ChannelType::PrivateThread
+      } else {
+        ChannelType::PublicThread
+      }),
+    )
+    .await?;
+
+  ctx
+    .send(
+      CreateReply::default().embed(CreateEmbed::new().description(format!(
+        "{} created: {}",
+        if private.unwrap_or(false) {
+          "Private thread"
+        } else {
+          "Thread"
+        },
+        channel.mention()
+      ))),
+    )
+    .await?;
+
+  Ok(())
+}
+
 #[shuttle_runtime::main]
 async fn serenity(
   #[shuttle_runtime::Secrets] secrets: SecretStore,
@@ -65,7 +103,7 @@ async fn serenity(
 
   let framework = Framework::<(), Error>::builder()
     .options(FrameworkOptions {
-      commands: vec![ping(), roll()],
+      commands: vec![ping(), roll(), thread()],
       ..Default::default()
     })
     .setup(move |ctx, _, framework: &Framework<_, _>| {
