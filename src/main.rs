@@ -1,20 +1,47 @@
 use anyhow::Context as _;
 use poise::{
-  serenity_prelude::{ClientBuilder, Error, GatewayIntents, GuildId, User},
+  serenity_prelude::{ClientBuilder, Error, GatewayIntents, GuildId},
   Framework, FrameworkOptions,
 };
+use rand::Rng;
 use shuttle_runtime::SecretStore;
 
 type Context<'a> = poise::Context<'a, (), Error>;
 
 #[poise::command(slash_command, prefix_command)]
-async fn age(
+async fn ping(ctx: Context<'_>) -> Result<(), Error> {
+  ctx.say("Pong!").await?;
+  Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn roll(
   ctx: Context<'_>,
-  #[description = "Selected user"] user: Option<User>,
+  #[description = "Number of sides"] sides: Option<u32>,
 ) -> Result<(), Error> {
-  let u = user.as_ref().unwrap_or_else(|| ctx.author());
-  let response = format!("{}'s account was created at {}", u.name, u.created_at());
-  ctx.say(response).await?;
+  let sides = sides.unwrap_or(6);
+  let roll = rand::rng().random_range(1..=sides);
+
+  let name = ctx.guild_id().map(|guild_id| async move {
+    ctx
+      .author()
+      .nick_in(ctx.http(), guild_id)
+      .await
+      .unwrap_or(ctx.author().display_name().to_string())
+  });
+
+  let name = if let Some(name) = name {
+    name.await
+  } else {
+    ctx.author().display_name().to_string()
+  };
+
+  ctx
+    .say(format!(
+      "**{}** rolled a **{}** on a d{}",
+      name, roll, sides
+    ))
+    .await?;
   Ok(())
 }
 
@@ -37,7 +64,7 @@ async fn serenity(
 
   let framework = Framework::<(), Error>::builder()
     .options(FrameworkOptions {
-      commands: vec![age()],
+      commands: vec![ping(), roll()],
       ..Default::default()
     })
     .setup(move |ctx, _, framework: &Framework<_, _>| {

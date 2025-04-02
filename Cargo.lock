@@ -420,6 +420,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "poise",
+ "rand 0.9.0",
  "shuttle-runtime",
  "shuttle-serenity",
  "tokio",
