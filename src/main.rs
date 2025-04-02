@@ -1,10 +1,11 @@
 use anyhow::Context as _;
 use poise::{
-  serenity_prelude::{ClientBuilder, Error, GatewayIntents, GuildId},
-  Framework, FrameworkOptions,
+  serenity_prelude::{ClientBuilder, CreateEmbed, Error, GatewayIntents, GuildId},
+  CreateReply, Framework, FrameworkOptions,
 };
 use rand::Rng;
 use shuttle_runtime::SecretStore;
+use std::vec;
 
 type Context<'a> = poise::Context<'a, (), Error>;
 
@@ -37,11 +38,11 @@ async fn roll(
   };
 
   ctx
-    .say(format!(
-      "**{}** rolled a **{}** on a d{}",
-      name, roll, sides
+    .send(CreateReply::default().embed(
+      CreateEmbed::new().description(format!("# {}\n-# {} sides (**{}**)", roll, sides, name)),
     ))
     .await?;
+
   Ok(())
 }
 
