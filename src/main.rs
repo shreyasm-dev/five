@@ -8,7 +8,7 @@ use poise::{
 };
 use rand::Rng;
 use shuttle_runtime::SecretStore;
-use std::vec;
+use std::{cmp::max, vec};
 
 type Context<'a> = poise::Context<'a, (), Error>;
 
@@ -21,10 +21,16 @@ async fn ping(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, prefix_command)]
 async fn roll(
   ctx: Context<'_>,
-  #[description = "Number of sides"] sides: Option<u32>,
+  #[description = "Number of sides (≥ 2)"] sides: Option<u32>,
+  #[description = "Number of rolls (≥ 1)"] rolls: Option<u32>,
 ) -> Result<(), Error> {
-  let sides = sides.unwrap_or(6);
-  let roll = rand::rng().random_range(1..=sides);
+  let rolls = max(1, rolls.unwrap_or(1));
+
+  let sides = max(2, sides.unwrap_or(6));
+  let roll = (0..=rolls)
+    .map(|_| rand::rng().random_range(1..=sides))
+    .reduce(|acc, x| acc + x)
+    .unwrap_or(0);
 
   let name = ctx.guild_id().map(|guild_id| async move {
     ctx
@@ -41,9 +47,16 @@ async fn roll(
   };
 
   ctx
-    .send(CreateReply::default().embed(
-      CreateEmbed::new().description(format!("# {}\n-# {} sides (**{}**)", roll, sides, name)),
-    ))
+    .send(
+      CreateReply::default().embed(CreateEmbed::new().description(format!(
+        "# {}\n-# {} sides, {} roll{} (**{}**)",
+        roll,
+        sides,
+        rolls,
+        if rolls == 1 { "" } else { "s" },
+        name
+      ))),
+    )
     .await?;
 
   Ok(())
