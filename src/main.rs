@@ -27,7 +27,8 @@ async fn roll(
   let rolls = max(1, rolls.unwrap_or(1));
 
   let sides = max(2, sides.unwrap_or(6));
-  let roll = (0..=rolls)
+
+  let roll = (0..rolls)
     .map(|_| rand::rng().random_range(1..=sides))
     .reduce(|acc, x| acc + x)
     .unwrap_or(0);
